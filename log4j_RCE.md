@@ -193,7 +193,7 @@ EnvironmentLookup#lookup是从System.getenv()取值
 
 JavaLookup#lookup局限这几个
 
-![image-20211212220152052](log4j_RCE.assets/image-20211212220152052.png)
+![image-20211212220152052](./images/image-20211212220152052.png)
 
 浅蓝师傅还发现了如果使用了ResourceBundleLookup#lookup，可以读取properties配置文件
 
