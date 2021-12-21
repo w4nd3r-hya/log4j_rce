@@ -1,5 +1,5 @@
 <component name="libraryTable">
-  <library name="tomcat-embed-core-9.0.38">
+  <library name="tomcat-embed-core-9.0.38 (3)">
     <CLASSES>
       <root url="jar://$PROJECT_DIR$/lib/tomcat-embed-core-9.0.38.jar!/" />
       <root url="jar://$PROJECT_DIR$/lib/tomcat-embed-el-9.0.38.jar!/" />
