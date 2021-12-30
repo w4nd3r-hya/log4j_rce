@@ -218,7 +218,7 @@ JavaLookup#lookup局限这几个
 </dependency>
 ```
 
-![image-20211230155344732](log4j_RCE.assets/image-20211230155344732.png)
+![image-20211230155344732](images/image-20211230155344732.png)
 
 ## 2.15.0 更新
 

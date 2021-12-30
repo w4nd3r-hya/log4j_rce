@@ -1,9 +1,5 @@
-# java
+### Java template
 *.class
-
-# mvn
 target/
-
-# idea
-.idea/
 *.iml
+.idea/
